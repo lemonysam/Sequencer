@@ -3,10 +3,16 @@ from time import sleep, time
 import os
 
 from pynput import keyboard
+from threading import Thread
+
 
 from instrument import Instrument
 from track import Track
 from instrument_config import instrument_config
+
+os.system("stty -echo")
+clear = lambda: os.system('clear')
+
 class Sequencer:
     # The method called when we start the sequencer, called a constructor and sets up the sequencer
     def __init__(self):
@@ -28,10 +34,6 @@ class Sequencer:
         # Start program loop
         self.core_loop()
 
-    # This next method is an event triggered by the keyboard listener, 
-    # it sets the currently pressed key to be the value if the current beat
-    # if that value is a valid tone. 
-    # 
     # This is probably the most complex bit of this so maybe ignore it for now...
     def on_press(self, key):
         try:
@@ -65,12 +67,13 @@ class Sequencer:
     def play_loop(self):
         while self.playing:
             start_time = time()
-            # Outputs the display
-            self.draw()
             # Outputs a sound
             for track in self.tracks.values():
-                track.beat(self.current_tick)
-
+                t = Thread(target=track.beat, args=(self.current_tick,))
+                t.start()
+                # track.beat(self.current_tick)
+            # Outputs the display
+            self.draw()
             time_delta = time() - start_time
             sleep((60/float(self.bpm)) - time_delta)
             self.current_tick = 0 if self.current_tick == self.total_ticks - 1 else self.current_tick + 1
@@ -78,8 +81,6 @@ class Sequencer:
     # This draws the current state of the sequencer to the terminal
     def draw(self):
         # this clears the screen in between drawing the sequencer to the console
-        clear = lambda: os.system('clear')
-        clear()
 
         title = "Playing" if self.playing else "Editing"
         # The display is 4 bars in a form like 
@@ -101,7 +102,7 @@ class Sequencer:
         
         for track in self.tracks.values():
             display_tracks.append(track.display())
-
+        clear()
         print(title + "\n" + '\n'.join(display_tracks) + "\n" + click_track)
     
     def build_tracks(self):
