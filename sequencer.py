@@ -1,9 +1,11 @@
-import time
+from time import sleep, time
+
 import os
 
 from pynput import keyboard
 
 from instrument import Instrument
+from track import Track
 from instrument_config import instrument_config
 class Sequencer:
     # The method called when we start the sequencer, called a constructor and sets up the sequencer
@@ -13,13 +15,12 @@ class Sequencer:
         self.bars = 4
         self.beats_per_bar = 4
 
-        # '.' is an empty beat, this is an array of empty beats
-        self.beats = ['.'] * self.total_ticks()
-
         # sets our initial tick at the beginning
         self.current_tick = 0
+        self.total_ticks = self.bars * self.beats_per_bar
 
-        self.build_instruments()
+        self.build_tracks()
+
         # Collect keyboard events
         listener = keyboard.Listener(on_press=self.on_press)
         listener.start()
@@ -34,8 +35,8 @@ class Sequencer:
     # This is probably the most complex bit of this so maybe ignore it for now...
     def on_press(self, key):
         try:
-            if key.char in self.instruments.keys() or key.char == '.':
-                self.beats[self.current_tick] = key.char
+            if key.char in self.tracks.keys():
+                self.tracks[key.char].toggle_voice(self.current_tick)
 
         except AttributeError:
             if  key == keyboard.Key.esc:
@@ -46,16 +47,18 @@ class Sequencer:
         self.looping = True
 
         while self.looping:
+            start_time = time()
             # Outputs the display
             self.draw()
             # Outputs a sound
-            if self.beats[self.current_tick] != '.':
-                self.instruments[self.beats[self.current_tick]].voice()
+            for track in self.tracks.values():
+                track.beat(self.current_tick)
 
             # wait the length of a beat - not ideal since it doesn't account for execution time of the above
             # because of Python's integer maths we have to cast bpm as a float
-            time.sleep(60/float(self.bpm))
-            self.current_tick = 0 if self.current_tick == self.total_ticks() - 1 else self.current_tick + 1
+            time_delta = time() - start_time
+            sleep((60/float(self.bpm)) - time_delta)
+            self.current_tick = 0 if self.current_tick == self.total_ticks - 1 else self.current_tick + 1
 
     # This draws the current state of the sequencer to the terminal
     def draw(self):
@@ -67,36 +70,34 @@ class Sequencer:
         # '|..s.|..k.|..s.|..s.|' 
         # '|    |  ^ |    |    |' 
         # where '^' is the current tick
-        display_line_1 = '|' 
-        display_line_2 = '|' 
-
-        # loop over the array of beats and append the current beatto the display string
-        # idx is the current kkkkss
-        for idx, beat in enumerate(self.beats):
+        click_track = '     |' 
+        idx = 0
+        while idx < self.total_ticks:
             if idx == self.current_tick:
-                display_line_2 = display_line_2 + '^'
+                click_track = click_track + '^'
             else:
-                display_line_2 = display_line_2 + ' '
-
-            display_line_1 = display_line_1 + beat
-
-            # end of a bar
+                click_track = click_track + ' '
             if idx % self.beats_per_bar == self.beats_per_bar - 1:
-                display_line_1 = display_line_1 + '|'
-                display_line_2 = display_line_2 + '|'
+                click_track = click_track + '|'
+            idx += 1
         
-        print(display_line_1 + "\n" + display_line_2)
+        display_tracks = []
+        
+        for track in self.tracks.values():
+            display_tracks.append(track.display())
+
+        print('\n'.join(display_tracks) + "\n" + click_track)
         
     
     # builds a dictionary consisting of single letter keys and Instrument values
-    def build_instruments(self):
-        self.instruments = {}
+    def build_tracks(self):
+        self.tracks = {}
         for instrument in instrument_config:
-            self.instruments.update({instrument["key"]: Instrument(instrument["path"])})
-
-    # How long to loop for
-    def total_ticks(self):
-        return self.bars * self.beats_per_bar
+            self.tracks.update({instrument["key"]: Track(
+                Instrument(instrument["path"], instrument["name"]),
+                self.total_ticks,
+                self.beats_per_bar
+            )})
 
 # this starts the program off by initialising the sequencer
 s = Sequencer()
