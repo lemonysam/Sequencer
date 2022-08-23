@@ -1,5 +1,10 @@
 instrument_config = [
     {
+        "key": "c",
+        "name": "clap",
+        "path": "Drums/Claps/ESW House - Clap 00.wav"
+    },
+    {
         "key": "s",
         "name": "snare",
         "path": "Drums/Snares/ESW House - Snare 01.wav"

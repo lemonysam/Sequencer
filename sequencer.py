@@ -11,7 +11,7 @@ class Sequencer:
     # The method called when we start the sequencer, called a constructor and sets up the sequencer
     def __init__(self):
         # set some parameters
-        self.bpm = 128
+        self.bpm = 228
         self.bars = 4
         self.beats_per_bar = 4
 
@@ -39,14 +39,31 @@ class Sequencer:
                 self.tracks[key.char].toggle_voice(self.current_tick)
 
         except AttributeError:
-            if  key == keyboard.Key.esc:
-                self.looping = False
+            if key == keyboard.Key.esc:
+                self.running = False
+                self.playing = False
+            elif key == keyboard.Key.enter:
+                self.playing = not self.playing
+            if self.playing == False:
+                if key == keyboard.Key.right:
+                    self.current_tick = (self.current_tick + 1) % self.total_ticks
+                elif key == keyboard.Key.left:
+                    self.current_tick = (self.current_tick - 1) % self.total_ticks
+
+    def core_loop(self):
+        self.playing = False
+        self.running = True
+
+        while self.running:
+            if self.playing:
+                self.play_loop()
+            else:
+                self.draw()
+
 
     # This loops constantly whilst the program is running
-    def core_loop(self):
-        self.looping = True
-
-        while self.looping:
+    def play_loop(self):
+        while self.playing:
             start_time = time()
             # Outputs the display
             self.draw()
@@ -54,8 +71,6 @@ class Sequencer:
             for track in self.tracks.values():
                 track.beat(self.current_tick)
 
-            # wait the length of a beat - not ideal since it doesn't account for execution time of the above
-            # because of Python's integer maths we have to cast bpm as a float
             time_delta = time() - start_time
             sleep((60/float(self.bpm)) - time_delta)
             self.current_tick = 0 if self.current_tick == self.total_ticks - 1 else self.current_tick + 1
@@ -66,6 +81,7 @@ class Sequencer:
         clear = lambda: os.system('clear')
         clear()
 
+        title = "Playing" if self.playing else "Editing"
         # The display is 4 bars in a form like 
         # '|..s.|..k.|..s.|..s.|' 
         # '|    |  ^ |    |    |' 
@@ -86,10 +102,8 @@ class Sequencer:
         for track in self.tracks.values():
             display_tracks.append(track.display())
 
-        print('\n'.join(display_tracks) + "\n" + click_track)
-        
+        print(title + "\n" + '\n'.join(display_tracks) + "\n" + click_track)
     
-    # builds a dictionary consisting of single letter keys and Instrument values
     def build_tracks(self):
         self.tracks = {}
         for instrument in instrument_config:
