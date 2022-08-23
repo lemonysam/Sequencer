@@ -12,7 +12,7 @@ class Sequencer:
     def __init__(self):
         # set some parameters
         self.bpm = 228
-        self.bars = 4
+        self.bars = 16
         self.beats_per_bar = 4
 
         # sets our initial tick at the beginning
