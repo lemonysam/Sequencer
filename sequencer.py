@@ -1,16 +1,17 @@
 from time import sleep, time
 
 import os
+import sys
 
 from pynput import keyboard
 from threading import Thread
-
+import curses
+import termios
 
 from instrument import Instrument
 from track import Track
 from instrument_config import instrument_config
 
-os.system("stty -echo")
 clear = lambda: os.system('clear')
 
 class Sequencer:
@@ -25,6 +26,10 @@ class Sequencer:
         self.current_tick = 0
         self.total_ticks = self.bars * self.beats_per_bar
 
+        self.screen = curses.initscr()
+        os.system("stty -echo")
+        curses.nocbreak()
+        curses.noecho()
         self.build_tracks()
 
         # Collect keyboard events
@@ -33,6 +38,7 @@ class Sequencer:
 
         # Start program loop
         self.core_loop()
+
 
     # This is probably the most complex bit of this so maybe ignore it for now...
     def on_press(self, key):
@@ -53,14 +59,18 @@ class Sequencer:
                     self.current_tick = (self.current_tick - 1) % self.total_ticks
 
     def core_loop(self):
-        self.playing = False
-        self.running = True
+        try:
+            self.playing = False
+            self.running = True
+            # self.screen.getch()
 
-        while self.running:
-            if self.playing:
-                self.play_loop()
-            else:
-                self.draw()
+            while self.running:
+                if self.playing:
+                    self.play_loop()
+                else:
+                    self.draw()
+        finally:
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
 
 
     # This loops constantly whilst the program is running
@@ -82,7 +92,7 @@ class Sequencer:
     def draw(self):
         # this clears the screen in between drawing the sequencer to the console
 
-        title = "Playing" if self.playing else "Editing"
+        self.screen.addstr(0,0,"Playing" if self.playing else "Editing")
         # The display is 4 bars in a form like 
         # '|..s.|..k.|..s.|..s.|' 
         # '|    |  ^ |    |    |' 
@@ -97,14 +107,13 @@ class Sequencer:
             if idx % self.beats_per_bar == self.beats_per_bar - 1:
                 click_track = click_track + '|'
             idx += 1
+
+        for idx, track in enumerate(self.tracks.values()):
+            self.screen.addstr(idx + 1, 0, track.display())
+        self.screen.addstr(self.tracks.__len__() + 1, 0, click_track)
+
+        self.screen.refresh()
         
-        display_tracks = []
-        
-        for track in self.tracks.values():
-            display_tracks.append(track.display())
-        clear()
-        print(title + "\n" + '\n'.join(display_tracks) + "\n" + click_track)
-    
     def build_tracks(self):
         self.tracks = {}
         for instrument in instrument_config:
