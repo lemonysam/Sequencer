@@ -36,9 +36,6 @@ class Sequencer:
         listener = keyboard.Listener(on_press=self.on_press)
         listener.start()
 
-        # Start program loop
-        self.core_loop()
-
 
     # This is probably the most complex bit of this so maybe ignore it for now...
     def on_press(self, key):
@@ -58,7 +55,7 @@ class Sequencer:
                 elif key == keyboard.Key.left:
                     self.current_tick = (self.current_tick - 1) % self.total_ticks
 
-    def core_loop(self):
+    def start(self):
         try:
             self.playing = False
             self.running = True
@@ -81,7 +78,6 @@ class Sequencer:
             for track in self.tracks.values():
                 t = Thread(target=track.beat, args=(self.current_tick,))
                 t.start()
-                # track.beat(self.current_tick)
             # Outputs the display
             self.draw()
             time_delta = time() - start_time
@@ -125,3 +121,5 @@ class Sequencer:
 
 # this starts the program off by initialising the sequencer
 s = Sequencer()
+
+s.start()
