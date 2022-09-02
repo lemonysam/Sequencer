@@ -5,8 +5,9 @@ import sys
 
 from pynput import keyboard
 from threading import Thread
-import curses
+
 import termios
+from console_display import ConsoleDisplay
 
 from instrument import Instrument
 from track import Track
@@ -16,7 +17,7 @@ clear = lambda: os.system('clear')
 
 class Sequencer:
     # The method called when we start the sequencer, called a constructor and sets up the sequencer
-    def __init__(self):
+    def __init__(self, display = ConsoleDisplay):
         # set some parameters
         self.bpm = 228
         self.bars = 16
@@ -26,11 +27,8 @@ class Sequencer:
         self.current_tick = 0
         self.total_ticks = self.bars * self.beats_per_bar
 
-        self.screen = curses.initscr()
-        os.system("stty -echo")
-        curses.nocbreak()
-        curses.noecho()
         self.build_tracks()
+        self.display = display(self.tracks, self.total_ticks, self.beats_per_bar)
 
         # Collect keyboard events
         listener = keyboard.Listener(on_press=self.on_press)
@@ -86,29 +84,7 @@ class Sequencer:
 
     # This draws the current state of the sequencer to the terminal
     def draw(self):
-        # this clears the screen in between drawing the sequencer to the console
-
-        self.screen.addstr(0,0,"Playing" if self.playing else "Editing")
-        # The display is 4 bars in a form like 
-        # '|..s.|..k.|..s.|..s.|' 
-        # '|    |  ^ |    |    |' 
-        # where '^' is the current tick
-        click_track = '     |' 
-        idx = 0
-        while idx < self.total_ticks:
-            if idx == self.current_tick:
-                click_track = click_track + '^'
-            else:
-                click_track = click_track + ' '
-            if idx % self.beats_per_bar == self.beats_per_bar - 1:
-                click_track = click_track + '|'
-            idx += 1
-
-        for idx, track in enumerate(self.tracks.values()):
-            self.screen.addstr(idx + 1, 0, track.display())
-        self.screen.addstr(self.tracks.__len__() + 1, 0, click_track)
-
-        self.screen.refresh()
+        self.display.display(self.current_tick, self.playing)
         
     def build_tracks(self):
         self.tracks = {}
