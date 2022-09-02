@@ -7,8 +7,8 @@ from pynput import keyboard
 from threading import Thread
 
 import termios
-from console_display import ConsoleDisplay
 
+from console_display import ConsoleDisplay
 from instrument import Instrument
 from track import Track
 from instrument_config import instrument_config

@@ -6,6 +6,8 @@ The application runs in [Python 3](https://www.python.org/downloads/). It requir
 ```
 pip3 install pynput
 pip3 install simpleaudio
+pip3 install termios
+pip3 install curses
 ```
 To start the synthesiser run the following command:
 
@@ -19,6 +21,6 @@ You'll have to plumb in your own sound files and enter the Path to that file int
 ## To Use
 Press the first letter of the instrument name to voice it on the current beat.
 
-press `enter` to start and pause playback and press `escape` to stop quit.
+press `enter` to start and pause playback and press `escape` to quit.
 
 You can edit in realtime by hitting keys during playback.
